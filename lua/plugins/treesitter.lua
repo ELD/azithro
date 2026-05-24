@@ -1,0 +1,26 @@
+return {
+  "nvim-treesitter/nvim-treesitter",
+  branch = "main",
+  build = ":TSUpdate",
+  config = function()
+    local treesitter = require("nvim-treesitter")
+    treesitter.install({ "rust", "go", "zig", "bash", "lua", "zsh" })
+    vim.treesitter.language.register("bash", { "zsh" }, "rust", "go", "zig")
+    vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+    vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+
+    vim.api.nvim_create_autocmd("FileType", {
+      callback = function(args)
+        local treesitter = require("nvim-treesitter")
+        local lang = vim.treesitter.language.get_lang(args.match)
+        if vim.list_contains(treesitter.get_available(), lang) then
+          if not vim.list_contains(treesitter.get_installed(), lang) then
+            treesitter.install(lang):wait()
+          end
+          vim.treesitter.start(args.buf)
+        end
+      end,
+      desc = "Enable nvim-treesitter and install parser if not installed"
+    })
+  end,
+}

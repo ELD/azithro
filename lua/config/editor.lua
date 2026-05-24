@@ -1,0 +1,50 @@
+local opts = {
+  autoindent = true,
+  autoread = true,
+  backspace = { "start", "eol", "indent" },
+  backup = false,
+  clipboard = "unnamedplus",
+  cmdheight = 0,
+  colorcolumn = { 80, 120 },
+  completeopt = { "menu", "menuone", "noselect", "preview" },
+  conceallevel = 1,
+  confirm = true,
+  cursorline = true,
+  errorbells = false,
+  expandtab = true,
+  fileencoding = "utf-8",
+  foldexpr = "nvim_treesitter#foldexpr()",
+  foldlevel = 99,
+  foldmethod = "expr",
+  hidden = true,
+  hlsearch = true,
+  ignorecase = true,
+  incsearch = true,
+  list = true,
+  listchars = {
+    tab = "»·",
+    trail = "·",
+    nbsp = "␣",
+  },
+  mouse = "a",
+  number = true,
+  relativenumber = true,
+  shiftwidth = 2,
+  showmode = false,
+  signcolumn = "yes",
+  smartcase = true,
+  smartindent = true,
+  softtabstop = 2,
+  splitbelow = true,
+  splitright = true,
+  tabstop = 2,
+  termguicolors = true,
+  undofile = true,
+  updatetime = 250,
+}
+
+for key, value in pairs(opts) do
+  vim.opt[key] = value
+end
+
+vim.opt.shortmess:append("c")
