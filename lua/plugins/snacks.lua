@@ -5,7 +5,39 @@ return {
   ---@type snacks.Config
   opts = {
     bigfile = { enabled = true },
-    dashboard = { enabled = true },
+    dashboard = {
+      enabled = true,
+      width = 64,
+      preset = {
+        header = [[
+ █████╗ ███████╗██╗████████╗██╗  ██╗██████╗  ██████╗ 
+██╔══██╗╚══███╔╝██║╚══██╔══╝██║  ██║██╔══██╗██╔═══██╗
+███████║  ███╔╝ ██║   ██║   ███████║██████╔╝██║   ██║
+██╔══██║ ███╔╝  ██║   ██║   ██╔══██║██╔══██╗██║   ██║
+██║  ██║███████╗██║   ██║   ██║  ██║██║  ██║╚██████╔╝
+╚═╝  ╚═╝╚══════╝╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ]],
+        keys = {
+          { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
+          { icon = " ", key = "g", desc = "Grep Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
+          { icon = " ", key = "r", desc = "Recent Files", action = ":lua Snacks.dashboard.pick('oldfiles')" },
+          { icon = " ", key = "p", desc = "Projects", action = ":lua Snacks.picker.projects()" },
+          { icon = " ", key = "c", desc = "Config", action = ":lua Snacks.dashboard.pick('files', { cwd = vim.fn.stdpath('config') })" },
+          { icon = " ", key = "s", desc = "Git Status", action = ":lua Snacks.picker.git_status()" },
+          { icon = " ", key = "t", desc = "Terminal", action = ":lua Snacks.terminal()" },
+          { icon = "󰒲 ", key = "m", desc = "Mason", action = ":Mason" },
+          { icon = "󰒲 ", key = "l", desc = "Plugin Specs", action = ":lua Snacks.picker.lazy()" },
+          { icon = " ", key = "q", desc = "Quit", action = ":qa" },
+        },
+      },
+      sections = {
+        { section = "header", padding = 1 },
+        { text = "A small Neovim distro for Rust, Go, TypeScript, APIs, and debugging.", align = "center", padding = 1 },
+        { section = "keys", gap = 1, padding = 1 },
+        { icon = " ", title = "Projects", section = "projects", limit = 4, padding = 1 },
+        { icon = " ", title = "Recent", section = "recent_files", limit = 5, padding = 1 },
+        { section = "startup" },
+      },
+    },
     explorer = { enabled = true },
     indent = { enabled = true },
     input = { enabled = true },
@@ -31,7 +63,6 @@ return {
     { "<leader>,", function() Snacks.picker.buffers() end, desc = "Buffers" },
     { "<leader>/", function() Snacks.picker.grep() end, desc = "Grep" },
     { "<leader>:", function() Snacks.picker.command_history() end, desc = "Command History" },
-    { "<leader>n", function() Snacks.picker.notifications() end, desc = "Notification History" },
     { "<leader>e", function() Snacks.explorer({ layout = { layout = { position = "right" } } }) end, desc = "File Explorer" },
     -- find
     { "<leader>fb", function() Snacks.picker.buffers() end, desc = "Buffers" },
@@ -54,7 +85,6 @@ return {
     { "<leader>gp", function() Snacks.picker.gh_pr() end, desc = "GitHub Pull Requests (open)" },
     { "<leader>gP", function() Snacks.picker.gh_pr({ state = "all" }) end, desc = "GitHub Pull Requests (all)" },
     -- Grep
-    { "<leader>sb", function() Snacks.picker.lines() end, desc = "Buffer Lines" },
     { "<leader>sB", function() Snacks.picker.grep_buffers() end, desc = "Grep Open Buffers" },
     { "<leader>sg", function() Snacks.picker.grep() end, desc = "Grep" },
     { "<leader>sw", function() Snacks.picker.grep_word() end, desc = "Visual selection or word", mode = { "n", "x" } },
@@ -142,7 +172,7 @@ return {
             dd(...)
           end
         else
-          vim.print = _G.dd 
+          vim.print = _G.dd
         end
 
         -- Create some toggle mappings
