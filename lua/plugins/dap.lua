@@ -26,12 +26,7 @@ return {
     local dapui = require("dapui")
 
     require("mason-nvim-dap").setup({
-      automatic_installation = true,
-      ensure_installed = {
-        "codelldb",
-        "delve",
-        "js-debug-adapter",
-      },
+      automatic_installation = false,
       handlers = {},
     })
 
@@ -44,16 +39,40 @@ return {
     dap.listeners.before.event_terminated.dapui_config = dapui.close
     dap.listeners.before.event_exited.dapui_config = dapui.close
 
-    local js_debug_path = vim.fn.stdpath("data") .. "/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js"
-    dap.adapters["pwa-node"] = {
-      type = "server",
-      host = "localhost",
-      port = "${port}",
-      executable = {
-        command = "node",
-        args = { js_debug_path, "${port}" },
-      },
-    }
+    dap.adapters["pwa-node"] = function(callback)
+      local node = vim.fn.exepath("node")
+      if node == "" then
+        vim.notify("Node.js is required for the JavaScript DAP adapter", vim.log.levels.ERROR)
+        return
+      end
+
+      local ok, package = pcall(require("mason-registry").get_package, "js-debug-adapter")
+      if not ok or not package:is_installed() then
+        vim.notify("Mason package js-debug-adapter is not installed", vim.log.levels.ERROR)
+        return
+      end
+
+      local js_debug_path = vim.fs.joinpath(
+        package:get_install_path(),
+        "js-debug",
+        "src",
+        "dapDebugServer.js"
+      )
+      if vim.fn.filereadable(js_debug_path) ~= 1 then
+        vim.notify("JavaScript DAP adapter not found: " .. js_debug_path, vim.log.levels.ERROR)
+        return
+      end
+
+      callback({
+        type = "server",
+        host = "localhost",
+        port = "${port}",
+        executable = {
+          command = node,
+          args = { js_debug_path, "${port}" },
+        },
+      })
+    end
 
     for _, language in ipairs({ "javascript", "javascriptreact", "typescript", "typescriptreact" }) do
       dap.configurations[language] = {

@@ -1,3 +1,29 @@
+local function show_zpack_plugins()
+  local ok, api = pcall(require, "zpack.api")
+  if not ok then
+    return vim.notify("zpack is not available", vim.log.levels.WARN)
+  end
+
+  local items = vim.tbl_map(function(plugin)
+    return {
+      text = plugin.name .. "  " .. plugin.status,
+      name = plugin.name,
+    }
+  end, api.get_plugins())
+
+  Snacks.picker({
+    title = "Plugins",
+    items = items,
+    format = "text",
+    confirm = function(picker, item)
+      if item then
+        picker:close()
+        vim.cmd("ZPack load " .. item.name)
+      end
+    end,
+  })
+end
+
 return {
   "folke/snacks.nvim",
   priority = 1000,
@@ -25,7 +51,7 @@ return {
           { icon = " ", key = "s", desc = "Git Status", action = ":lua Snacks.picker.git_status()" },
           { icon = " ", key = "t", desc = "Terminal", action = ":lua Snacks.terminal()" },
           { icon = "󰒲 ", key = "m", desc = "Mason", action = ":Mason" },
-          { icon = "󰒲 ", key = "l", desc = "Plugin Specs", action = ":lua Snacks.picker.lazy()" },
+          { icon = "󰒲 ", key = "l", desc = "Plugins", action = show_zpack_plugins },
           { icon = " ", key = "q", desc = "Quit", action = ":qa" },
         },
       },
@@ -45,7 +71,7 @@ return {
       enabled = true,
       timeout = 3000,
     },
-    picker = { enabled = true, present = "sidebar", layout = { position = "right" } },
+    picker = { enabled = true, layout = { preset = "sidebar", position = "right" } },
     quickfile = { enabled = true },
     scope = { enabled = true },
     scroll = { enabled = true },
@@ -105,7 +131,7 @@ return {
     { "<leader>sl", function() Snacks.picker.loclist() end, desc = "Location List" },
     { "<leader>sm", function() Snacks.picker.marks() end, desc = "Marks" },
     { "<leader>sM", function() Snacks.picker.man() end, desc = "Man Pages" },
-    { "<leader>sp", function() Snacks.picker.lazy() end, desc = "Search for Plugin Spec" },
+    { "<leader>sp", show_zpack_plugins, desc = "Plugins" },
     { "<leader>sq", function() Snacks.picker.qflist() end, desc = "Quickfix List" },
     { "<leader>sR", function() Snacks.picker.resume() end, desc = "Resume" },
     { "<leader>su", function() Snacks.picker.undo() end, desc = "Undo History" },

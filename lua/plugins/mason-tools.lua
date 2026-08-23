@@ -4,9 +4,12 @@ return {
   opts = {
     ensure_installed = {
       "eslint_d",
+      "codelldb",
+      "delve",
       "gofumpt",
       "goimports",
       "hadolint",
+      "js-debug-adapter",
       "markdownlint-cli2",
       "prettier",
       "prettierd",
@@ -16,6 +19,6 @@ return {
       "taplo",
     },
     auto_update = false,
-    run_on_start = true,
+    run_on_start = false,
   },
 }

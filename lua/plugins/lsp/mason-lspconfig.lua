@@ -25,7 +25,7 @@ return {
     { "mason-org/mason.nvim", opts = {} },
   },
   config = function(_, opts)
-    require("mason").setup()
+    require("config.lsp")
     require("mason-lspconfig").setup(opts)
   end,
 }

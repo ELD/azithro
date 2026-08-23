@@ -13,6 +13,16 @@ vim.diagnostic.config({
 local lsp_group = vim.api.nvim_create_augroup("azithro_lsp", { clear = true })
 local highlight_group = vim.api.nvim_create_augroup("azithro_lsp_document_highlight", { clear = true })
 
+local function has_document_highlight_client(bufnr, excluded_client_id)
+  for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+    if client.id ~= excluded_client_id
+        and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight, bufnr) then
+      return true
+    end
+  end
+  return false
+end
+
 vim.api.nvim_create_autocmd("LspAttach", {
   group = lsp_group,
   callback = function(args)
@@ -58,17 +68,18 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end
 
     if client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight, bufnr) then
-      vim.api.nvim_clear_autocmds({ group = highlight_group, buffer = bufnr })
-      vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-        group = highlight_group,
-        buffer = bufnr,
-        callback = vim.lsp.buf.document_highlight,
-      })
-      vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-        group = highlight_group,
-        buffer = bufnr,
-        callback = vim.lsp.buf.clear_references,
-      })
+      if not has_document_highlight_client(bufnr, client.id) then
+        vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+          group = highlight_group,
+          buffer = bufnr,
+          callback = vim.lsp.buf.document_highlight,
+        })
+        vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+          group = highlight_group,
+          buffer = bufnr,
+          callback = vim.lsp.buf.clear_references,
+        })
+      end
     end
   end,
 })
@@ -76,7 +87,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
 vim.api.nvim_create_autocmd("LspDetach", {
   group = lsp_group,
   callback = function(args)
-    vim.api.nvim_clear_autocmds({ group = highlight_group, buffer = args.buf })
-    vim.lsp.buf.clear_references()
+    if not has_document_highlight_client(args.buf, args.data.client_id) then
+      vim.api.nvim_clear_autocmds({ group = highlight_group, buffer = args.buf })
+      if vim.api.nvim_buf_is_valid(args.buf) then
+        vim.api.nvim_buf_call(args.buf, vim.lsp.buf.clear_references)
+      end
+    end
   end,
 })

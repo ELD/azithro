@@ -15,9 +15,9 @@ Azithro is aimed at day-to-day Rust, Go, TypeScript, API, and debugging workflow
 
 ## Requirements
 
-- Neovim 0.11+ with `vim.pack` support.
+- Neovim 0.12+ with `vim.pack` support.
 - A Nerd Font for icons and statusline glyphs.
-- `git`, `curl`, and common build tools for language servers and Treesitter parsers.
+- `git`, `curl`, the tree-sitter CLI, and common build tools for language servers and parsers.
 
 Recommended external tools:
 
@@ -26,7 +26,7 @@ Recommended external tools:
 - TypeScript: `node`, `npm`, `pnpm`, or `yarn`
 - API/WebSocket: `websocat` or `wscat`
 
-Most LSP servers, formatters, linters, and DAP adapters are installed through Mason.
+Most LSP servers, formatters, linters, and DAP adapters are installed through Mason. Run `:MasonToolsInstall` when you want to synchronize the configured tools.
 
 ## Structure
 
@@ -49,7 +49,7 @@ lua/plugins/
   neotest.lua
   rust.lua
   snacks.lua
-  treesitter.lua
+  treesitter-manager.lua
   trouble.lua
   typescript.lua
   which-key.lua
