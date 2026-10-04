@@ -1,14 +1,22 @@
+local debug = require("config.debug")
+local tool_provider = debug.tool_provider()
+
+local dependencies = {
+  "leoluz/nvim-dap-go",
+  "theHamsta/nvim-dap-virtual-text",
+  {
+    "rcarriga/nvim-dap-ui",
+    dependencies = { "nvim-neotest/nvim-nio" },
+  },
+}
+if tool_provider == "mason" then
+  table.insert(dependencies, 1, "jay-babu/mason-nvim-dap.nvim")
+end
+
 return {
   "mfussenegger/nvim-dap",
-  dependencies = {
-    "jay-babu/mason-nvim-dap.nvim",
-    "leoluz/nvim-dap-go",
-    "theHamsta/nvim-dap-virtual-text",
-    {
-      "rcarriga/nvim-dap-ui",
-      dependencies = { "nvim-neotest/nvim-nio" },
-    },
-  },
+  -- ZPack's module auto-load lets Neotest's first require("dap") load this plugin.
+  dependencies = dependencies,
   keys = {
     { "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "DAP Toggle Breakpoint" },
     { "<leader>dB", function() require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: ")) end, desc = "DAP Conditional Breakpoint" },
@@ -25,10 +33,12 @@ return {
     local dap = require("dap")
     local dapui = require("dapui")
 
-    require("mason-nvim-dap").setup({
-      automatic_installation = false,
-      handlers = {},
-    })
+    if tool_provider == "mason" then
+      require("mason-nvim-dap").setup({
+        automatic_installation = false,
+        handlers = {},
+      })
+    end
 
     dapui.setup()
     require("nvim-dap-virtual-text").setup()
@@ -39,40 +49,7 @@ return {
     dap.listeners.before.event_terminated.dapui_config = dapui.close
     dap.listeners.before.event_exited.dapui_config = dapui.close
 
-    dap.adapters["pwa-node"] = function(callback)
-      local node = vim.fn.exepath("node")
-      if node == "" then
-        vim.notify("Node.js is required for the JavaScript DAP adapter", vim.log.levels.ERROR)
-        return
-      end
-
-      local ok, package = pcall(require("mason-registry").get_package, "js-debug-adapter")
-      if not ok or not package:is_installed() then
-        vim.notify("Mason package js-debug-adapter is not installed", vim.log.levels.ERROR)
-        return
-      end
-
-      local js_debug_path = vim.fs.joinpath(
-        package:get_install_path(),
-        "js-debug",
-        "src",
-        "dapDebugServer.js"
-      )
-      if vim.fn.filereadable(js_debug_path) ~= 1 then
-        vim.notify("JavaScript DAP adapter not found: " .. js_debug_path, vim.log.levels.ERROR)
-        return
-      end
-
-      callback({
-        type = "server",
-        host = "localhost",
-        port = "${port}",
-        executable = {
-          command = node,
-          args = { js_debug_path, "${port}" },
-        },
-      })
-    end
+    debug.setup_adapters(dap, tool_provider)
 
     for _, language in ipairs({ "javascript", "javascriptreact", "typescript", "typescriptreact" }) do
       dap.configurations[language] = {

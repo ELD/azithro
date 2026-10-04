@@ -1,3 +1,20 @@
+local runtime = require("config.runtime")
+
+if runtime.tool_provider == "nix" then
+  return {
+    "neovim/nvim-lspconfig",
+    config = function()
+      require("config.lsp")
+      -- Mason's automatic_enable only considers Mason-installed servers.
+      -- Nix executables instead come from the Neovim wrapper's PATH.
+      vim.lsp.enable({
+        "bashls", "cssls", "eslint", "gopls", "graphql", "html", "jsonls",
+        "lua_ls", "marksman", "taplo", "yamlls",
+      })
+    end,
+  }
+end
+
 return {
   "mason-org/mason-lspconfig.nvim",
   opts = {

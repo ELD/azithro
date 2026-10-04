@@ -4,6 +4,12 @@ return {
   ft = { "rust" },
   init = function()
     vim.g.rustaceanvim = {
+      -- Rustaceanvim's own debug commands must use the same adapter as nvim-dap.
+      dap = require("config.runtime").tool_provider == "nix" and {
+        adapter = function()
+          return require("config.debug").codelldb_adapter() or false
+        end,
+      } or nil,
       server = {
         default_settings = {
           ["rust-analyzer"] = {

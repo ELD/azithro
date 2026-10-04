@@ -6,51 +6,6 @@ return {
     vim.o.laststatus = 3
   end,
   opts = function()
-    local colors = {
-      bg = "NONE",
-      fg = "#c8d3f5",
-      dark = "#1b1d2b",
-      muted = "#828bb8",
-      blue = "#82aaff",
-      cyan = "#86e1fc",
-      green = "#c3e88d",
-      orange = "#ff966c",
-      purple = "#c099ff",
-      red = "#ff757f",
-      yellow = "#ffc777",
-    }
-
-    local mode_colors = {
-      command = colors.yellow,
-      insert = colors.green,
-      normal = colors.blue,
-      replace = colors.red,
-      terminal = colors.cyan,
-      visual = colors.purple,
-    }
-
-    local function mode_section(color)
-      return {
-        a = { fg = colors.dark, bg = color, gui = "bold" },
-        b = { fg = colors.fg, bg = colors.dark },
-        c = { fg = colors.fg, bg = colors.bg },
-      }
-    end
-
-    local theme = {
-      command = mode_section(mode_colors.command),
-      insert = mode_section(mode_colors.insert),
-      normal = mode_section(mode_colors.normal),
-      replace = mode_section(mode_colors.replace),
-      terminal = mode_section(mode_colors.terminal),
-      visual = mode_section(mode_colors.visual),
-      inactive = {
-        a = { fg = colors.muted, bg = colors.dark, gui = "bold" },
-        b = { fg = colors.muted, bg = colors.dark },
-        c = { fg = colors.muted, bg = colors.bg },
-      },
-    }
-
     local function lsp_clients()
       local clients = vim.lsp.get_clients({ bufnr = 0 })
       if #clients == 0 then
@@ -106,7 +61,7 @@ return {
         },
         globalstatus = true,
         section_separators = { left = "", right = "" },
-        theme = theme,
+        theme = "auto",
       },
       sections = {
         lualine_a = {
@@ -131,12 +86,12 @@ return {
           {
             "branch",
             icon = "",
-            color = { fg = colors.purple, bg = colors.dark, gui = "bold" },
+            -- color = { fg = colors.purple, bg = colors.dark, gui = "bold" },
           },
           {
             "diff",
             colored = true,
-            symbols = { added = "+", modified = "~", removed = "-" },
+            -- symbols = { added = "+", modified = "~", removed = "-" },
           },
         },
         lualine_c = {
@@ -150,12 +105,12 @@ return {
           {
             lsp_clients,
             icon = "",
-            color = { fg = colors.cyan, gui = "bold" },
+            -- color = { fg = colors.cyan, gui = "bold" },
           },
           {
             formatter_status,
             icon = "󰉢",
-            color = { fg = colors.green, gui = "bold" },
+            -- color = { fg = colors.green, gui = "bold" },
           },
           {
             "filetype",
@@ -184,7 +139,7 @@ return {
         lualine_y = {},
         lualine_z = {},
       },
-      extensions = { "fugitive", "lazy", "mason", "oil", "quickfix", "trouble" },
+      extensions = { "mason", "oil", "quickfix", "trouble" },
     }
   end,
 }

@@ -1,3 +1,5 @@
+-- Snacks.dashboard's startup section probes lazy.stats. This compatibility shim
+-- reports ZPack statistics without installing or depending on lazy.nvim.
 local M = {}
 
 local uv = vim.uv or vim.loop

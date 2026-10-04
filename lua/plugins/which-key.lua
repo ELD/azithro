@@ -15,6 +15,7 @@ return {
       { "<leader>f", group = "find" },
       { "<leader>g", group = "git" },
       { "<leader>gh", group = "hunks" },
+      { "<leader>m", group = "markdown" },
       { "<leader>o", group = "outline" },
       { "<leader>s", group = "search" },
       { "<leader>t", group = "test" },

@@ -1,11 +1,11 @@
-if vim.fn.has("nvim-0.12") ~= 1 then
-	error("Azithro requires Neovim 0.12 or newer")
+if vim.fn.has("nvim-0.13") ~= 1 then
+	error("Azithro requires Neovim 0.13+ with packlockfile support; use a compatible pinned nightly")
 end
 
 vim.g.__zpack_start_hrtime = (vim.uv or vim.loop).hrtime()
 
--- Enable the UI2 stuff
-require("vim._core.ui2").enable()
+local runtime = require("config.runtime")
+runtime.setup()
 
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
@@ -16,7 +16,7 @@ vim.pack.add({ "https://github.com/zuqini/zpack.nvim" })
 
 require("zpack").setup({
 	profiling = {
-		loader = true,
-		require = true,
+		loader = runtime.profiling,
+		require = runtime.profiling,
 	},
 })

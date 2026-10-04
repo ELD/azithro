@@ -1,9 +1,9 @@
 return {
   "WhoIsSethDaniel/mason-tool-installer.nvim",
+  enabled = require("config.runtime").tool_provider == "mason",
   dependencies = { "mason-org/mason.nvim" },
   opts = {
     ensure_installed = {
-      "eslint_d",
       "codelldb",
       "delve",
       "gofumpt",

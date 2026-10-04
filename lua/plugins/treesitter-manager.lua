@@ -4,12 +4,24 @@ return {
 	config = function()
 		vim.treesitter.language.register("bash", "zsh")
 		vim.treesitter.language.register("json", "jsonc")
-		vim.treesitter.language.register("stitchr", "stitchr")
-		vim.filetype.add({
-			extension = {
-				stitchr = "stitchr",
-			},
-		})
+		local languages = {}
+		local stitchr = require("config.runtime").stitchr_path
+		if stitchr then
+			if vim.fn.isdirectory(stitchr) == 1 and vim.fn.filereadable(stitchr .. "/grammar.js") == 1 then
+				vim.treesitter.language.register("stitchr", "stitchr")
+				vim.filetype.add({ extension = { stitchr = "stitchr" } })
+				languages.stitchr = {
+					install_info = {
+						url = "file://" .. stitchr,
+						location = ".",
+						queries = "queries/stitchr",
+					},
+					filetype = "stitchr",
+				}
+			else
+				vim.notify("Azithro: Stitchr grammar checkout not found: " .. stitchr, vim.log.levels.WARN)
+			end
+		end
 
 		require("tree-sitter-manager").setup({
 			ensure_installed = {
@@ -36,16 +48,7 @@ return {
 				"yaml",
 				"zig",
 			},
-			languages = {
-				stitchr = {
-					install_info = {
-						url = vim.fn.expand("file:///Users/edattore/workspace/rust/stitchr/tree-sitter-stitchr"),
-						location = ".",
-						queries = "queries/stitchr",
-					},
-					filetype = "stitchr",
-				},
-			},
+			languages = languages,
 			auto_install = true,
 			highlight = true,
 		})
