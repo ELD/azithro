@@ -1,57 +1,23 @@
 { pkgs }:
 
-let
-  jsDebug = pkgs.vscode-js-debug;
-  codeLLDB = pkgs.vscode-extensions.vadimcn.vscode-lldb;
-in
 {
   packages = with pkgs; [
-    # Core navigation and source-control tools.
+    # Navigation, source control, and Mason download/extraction prerequisites.
     curl
     fd
     git
     lazygit
     ripgrep
+    unzip
 
-    # Language servers.
-    bash-language-server
-    gopls
-    graphql-language-service-cli
-    lua-language-server
-    marksman
-    rust-analyzer
-    taplo
-    typescript-language-server
-    vscode-langservers-extracted # CSS, HTML, JSON, and ESLint servers.
-    yaml-language-server
-
-    # Formatters, linters, parsers, and native build prerequisites.
-    eslint
-    gofumpt
-    gotools # Includes goimports.
-    hadolint
-    markdownlint-cli2
+    # Runtimes and native build prerequisites, not Mason-managed tools.
     nodejs
-    prettier
-    prettierd
-    shellcheck
-    shfmt
-    stylua
-    tree-sitter
-    typescript
+    python3
+    go
     rustup # Project-selected Rust toolchains provide rustfmt and Clippy.
+    tree-sitter
     gnumake
     pkg-config
     stdenv.cc
-
-    # Test/debug support.
-    delve
-    jsDebug
-    codeLLDB
-    go
   ];
-
-  jsDebugCommand = "${jsDebug}/bin/js-debug";
-  # The adapter executable is not on PATH, so consumers must use this full path.
-  codeLLDBAdapter = "${codeLLDB}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
 }

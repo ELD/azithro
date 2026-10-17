@@ -4,18 +4,35 @@ File-as-a-backlog for replacing SigmaVim in `~/.nixos-config`. Check an item onl
 when its stated acceptance checks pass. Keep implementation, evaluation, build,
 and real workflow validation separate.
 
-**Status:** repository-local implementation and automated readiness checks are
-complete. System-flake wiring is now prepared ahead of publication, with locking
-still pending. **Not yet approved for activation:** publication, input locking,
-actual host-output builds and interactive workflow checks remain below.
+**Status:** the Home Manager Mason-default migration is implemented. The
+offline suite passes on unwrapped `v0.13.0-nightly+544d8cd`; `nixfmt` and Nix
+parse checks pass; and `nix/check.nix` immutable/editable evaluations pass for
+`aarch64-darwin` and `x86_64-linux` using current system-flake inputs. These
+checks were read-only. No builds or activation were performed. Historical
+build evidence from the previous Nix-tool-wrapper design is labeled below.
+Actual builds and real Mason workflows remain pending; this is not approval for
+activation.
 
 ## Decisions and boundaries
 
-- Nix owns Neovim, the Lua configuration and external tools.
+- Nix owns Neovim, the Lua configuration, base utilities, runtimes, and
+  parser/build prerequisites. `nix/tools.nix` retains `curl`, `fd`, `git`,
+  `lazygit`, `ripgrep`; `nodejs`, `go`, `rustup`, `python3`, `unzip`; and
+  `tree-sitter`, `gnumake`, `pkg-config`, `stdenv.cc` only.
+- Mason owns editor tools under the Home Manager default: it ensures LSPs
+  automatically; `:MasonToolsInstall` explicitly installs other tools and
+  `:Mason` manages/updates them. The Nix package set has no LSPs, formatters,
+  linters, debug adapters, or TypeScript.
+- `AZITHRO_TOOL_PROVIDER=nix` remains an optional runtime choice for externally
+  provisioned tools; it is not the Home Manager default.
 - ZPack/native `vim.pack` owns plugin installations and interactive updates.
-- The tracked `nvim-pack-lock.json` is the canonical plugin manifest.
+- The tracked `nvim-pack-lock.json` is the canonical plugin manifest. Its
+  lifecycle is unchanged by the tool-provider migration. Mason tool state is
+  mutable, is not rolled back by Nix, and updates do not require an HM rebuild.
 - Support editable checkout and immutable store-backed profiles.
 - Target Darwin and Linux; Stitchr is optional, with no baked-in host path.
+  Mason prebuilt binaries may require `nix-ld` or a compatible loader on NixOS;
+  the module does not enable `nix-ld`, and Linux portability is not promised.
 - Use `github:ELD/azithro` as a pinned, non-flake input once published.
 - ESLint LSP is the sole JS/TS ESLint diagnostics/code-action provider.
 - Initial readiness work was Azithro-repository only. The user subsequently
@@ -34,9 +51,12 @@ actual host-output builds and interactive workflow checks remain below.
   effective values; the upstream README example was misleading.
 - [x] **R2 — One ESLint owner.** Removed `eslint_d` from nvim-lint/Mason tools;
   retained ESLint LSP and the existing Conform formatting policy.
-- [x] **R3 — Deployment interface.** `lua/config/runtime.lua` validates provider,
-  lock path, Stitchr path, UI/profiling flags and optional AI settings. Standalone
-  usage defaults to Mason; Home Manager explicitly selects Nix tools.
+- [x] **R3 — Home Manager provider migration.** `lua/config/runtime.lua`
+  supports provider, lock path, Stitchr path, UI/profiling flags, and optional AI
+  settings. Standalone and Home Manager default to Mason; the wrapper unsets the
+  four JavaScript/CodeLLDB override variables. The optional `nix` provider
+  remains available for externally provisioned tools only. Offline tests and
+  read-only Nix evaluations pass; build and real workflow checks remain pending.
 - [x] **R4 — Experimental UI fallback.** Private UI enablement is guarded, with
   native UI fallback and conditional tiny-cmdline. Profiling defaults off.
 - [x] **R5 — Optional Stitchr.** Only an explicit absolute path with a readable
@@ -58,19 +78,21 @@ actual host-output builds and interactive workflow checks remain below.
 
 ## 2. Tool ownership
 
-- [x] **T1 — Nix LSP mode.** Enables configured LSP servers directly without
-  loading Mason. Rust/TS remain managed by their specialized plugins. Mason mode
-  keeps automatic LSP installation and explicit `:MasonToolsInstall` for tools.
-- [x] **T2 — Provider-neutral debugging.** `lua/config/debug.lua` supports explicit
-  JS wrapper/script and CodeLLDB paths. Mason-specific dependencies/setup are
-  conditional. Rustaceanvim shares the explicit Nix CodeLLDB adapter. Offline
-  adapter tests and real Neotest-before-DAP loading pass; actual debug sessions
-  remain C4, not implied by these checks.
-- [x] **T3 — Nix tool inventory.** `nix/tools.nix` covers servers, formatters,
-  linters, compiler/parser prerequisites, navigation and debugging. Rustup owns
-  project-selected Rust toolchains/components. Configured JS Debug/CodeLLDB
-  executables built and passed `--help` on Darwin. Linux loader/runtime behavior
-  and parser compilation remain explicit C3/C4 checks.
+- [x] **T1 — Home Manager Mason mode.** The wrapper selects Mason. LSPs are
+  ensured automatically; other tools are installed explicitly with
+  `:MasonToolsInstall`, and `:Mason` manages/updates Mason tools. Retain
+  `AZITHRO_TOOL_PROVIDER=nix` only as an optional mode for external provisioning.
+- [x] **T2 — Mason adapter handoff.** The Home Manager wrapper unsets
+  `AZITHRO_JS_DEBUG_COMMAND`, `AZITHRO_JS_DEBUG_SERVER`,
+  `AZITHRO_CODELLDB_COMMAND`, and `AZITHRO_LIBLLDB_PATH`. Real Mason-managed
+  adapter sessions on target platforms remain a C4 workflow check; historical
+  Nix adapter builds do not cover them.
+- [x] **T3 — Base Nix package inventory.** `nix/tools.nix` contains only
+  `curl`, `fd`, `git`, `lazygit`, `ripgrep`; `nodejs`, `go`, `rustup`,
+  `python3`, `unzip`; and `tree-sitter`, `gnumake`, `pkg-config`, `stdenv.cc`.
+  It contains no Nix LSPs, formatters, linters, adapters, or TypeScript. Mason
+  binaries may require `nix-ld`/a compatible loader on NixOS; the module does
+  not enable it, and Linux portability is not promised.
 
 ## 3. Plugin lock lifecycle
 
@@ -105,17 +127,20 @@ actual host-output builds and interactive workflow checks remain below.
   runtime settings, TS preferences, ESLint ownership, provider-specific specs,
   debugger/Rust adapter definitions, UI/Stitchr/AI optionality, native hooks,
   `.envrc` safety and lock validation/concurrency guards.
-- [x] **V2 — Isolated plugin smoke.** `bash tests/run.sh --smoke` installs all
-  44 locked plugins in fresh data from disposable Git mirrors where available,
-  using a read-only config and writable state. Checks real ZPack, lazy events,
-  Neotest-before-DAP, Conform, TS preferences, Blink and unloaded Mason modules.
-  Captures both notification and echo errors. Blink Pairs native parsing/matching
-  passes. **Parser installer setup is deliberately mocked; this is not C4.**
-- [x] **V3 — Repository-local Nix checks.** Parse/format checks and standalone
-  Home Manager evaluation pass for Darwin/Linux, immutable/editable modes.
-  A native Darwin managed-wrapper build succeeds with the pinned nightly;
-  isolated wrapper init/lock probe passes (ZPack stubbed in that specific probe).
-  This did not evaluate or activate the external system flake or build Linux.
+- [x] **V2 — Isolated plugin smoke (historical provider scope).**
+  `bash tests/run.sh --smoke` installs locked plugins in fresh data from
+  disposable Git mirrors where available, using a read-only config and writable
+  state. The smoke remains on the explicit externally provisioned
+  `AZITHRO_TOOL_PROVIDER=nix` path; it is not validation of the Home Manager
+  Mason-default wrapper. It checks ZPack, lazy events, Neotest-before-DAP,
+  Conform, TS preferences, Blink, and unloaded Mason modules. Blink Pairs native
+  parsing/matching passes. **Parser installer setup is deliberately mocked; this
+  is not C4.**
+- [x] **V3 — Mason-default Nix checks.** `nixfmt` and Nix parse checks pass.
+  `nix/check.nix` immutable/editable evaluations pass for `aarch64-darwin` and
+  `x86_64-linux` using current system-flake inputs, read-only. The offline suite
+  passes on unwrapped `v0.13.0-nightly+544d8cd`. No builds or activation were
+  performed; actual Mason runtime workflows remain C4.
 - [x] **V4 — Native update/restore round trip.** `tests/pack-integration.lua`
   uses a local Git fixture and separate Neovim processes: install pinned commit,
   offline update, export, refresh from read-only bundle, restart and native
@@ -142,7 +167,10 @@ actual host-output builds and interactive workflow checks remain below.
 - [ ] **C3 — Build actual host outputs.** Evaluate/build the actual editable and
   store-backed Home Manager outputs on Darwin/Linux with their pinned inputs.
   Confirm a compatible nightly, package/option availability, link ownership and
-  native binary loaders. The standalone checks are preparation, not this gate.
+  native binary loaders. The previous Nix-tool-wrapper checks are historical,
+  not this gate. Mason prebuilt binaries may need `nix-ld` or another compatible
+  loader on NixOS; this module does not enable it, so Linux portability is not
+  promised.
 - [ ] **C4 — Validate real workflows.** Rust/Go/TS LSP; save formatting; ESLint
   diagnostics/fixes; nearest/file tests; first-use and Rust/Go/JS DAP sessions;
   HTTP requests; Treesitter compilation/highlighting; completion; experimental
@@ -164,25 +192,30 @@ nixfmt --check nix/home-manager.nix nix/tools.nix nix/check.nix
 # Pinned standalone evaluation/build commands: nix/README.md.
 ```
 
-- Offline suite and full-plugin/native smoke passed on installed
-  `v0.13.0-nightly+b39f802`.
-- Full-plugin/native smoke also passed with reviewed overlay binary
-  `v0.13.0-nightly+ef3ae3d` (Darwin).
-- Standalone Nix checks used Nixpkgs
+- The offline suite passes on unwrapped `v0.13.0-nightly+544d8cd`.
+- Current `nix/check.nix` immutable/editable evaluations pass for
+  `aarch64-darwin` and `x86_64-linux` using current system-flake inputs; Nix
+  formatting and parse checks pass. These checks were read-only; no builds or
+  activation were performed.
+- `bash tests/run.sh --smoke` remains on the explicit externally provisioned
+  `AZITHRO_TOOL_PROVIDER=nix` path and does not validate the Home Manager
+  Mason-default wrapper. The previously recorded smoke runs below are historical.
+- Historical standalone Nix checks used Nixpkgs
   `419fe0f449b3fbe3bdd53d9840288db4509ec32e`, Home Manager
   `7b4c5ec4bedaf1e062bbc1bcaeddbc6bd242aa1b`, nightly overlay
   `12716739581f26ef5638213294068a3b4d486e83`, with Neovim source
   `ef3ae3d19d3f1ab1d3a5f318ad61ac0c707869bb`. Exact commands are documented.
-- The initial stable-package build was not a readiness pass: runtime probing
-  exposed missing `packlockfile`; the module now rejects that package.
+- Historical initial stable-package build was not a readiness pass: runtime
+  probing exposed missing `packlockfile`; the module now rejects that package.
 - A smoke-fixture `.git`-only Blink checkout was traced to omitted semver tags in
   temporary mirrors and fixed. Tests preserve source URLs and locked revisions.
 - The stronger native check exposed the genuine missed-build-hook cold-start
   issue (R8); availability and actual delimiter matching now prevent false passes.
 - Initial readiness tests isolated configs/data/state and did not modify the
   system flake. Subsequent wiring changed `~/.nixos-config/flake.nix`, its shared
-  Home Manager module, README, ignore rules and tools-update input list. Nix
-  parsing/formatting checks passed; `flake.lock` remains unchanged until publish.
+  Home Manager module, README, ignore rules and tools-update input list. The
+  current system `flake.lock` remains unchanged; no system flake was edited by
+  the current read-only checks.
 - Created the ignored `~/.nixos-config/checkouts/azithro` symlink to the existing
   workspace only after confirming the destination was absent. Existing workflow
   edits and the dirty SigmaVim checkout were preserved. No activation or canonical

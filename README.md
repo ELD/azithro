@@ -5,6 +5,8 @@ A small Neovim distribution that uses `zpack.nvim` to wrap Neovim's native `vim.
 Azithro is aimed at day-to-day Rust, Go, TypeScript, API, and debugging workflows without becoming a large framework.
 
 See the [keymap cheatsheet](CHEATSHEET.md) for shortcuts grouped by workflow.
+For the Nix loading diagram and update workflow, read
+[How Azithro fits into nixos-config](nix/HOW-IT-WORKS.md).
 
 ## Goals
 
@@ -29,10 +31,13 @@ Recommended external tools:
 - TypeScript: `node`, `npm`, `pnpm`, or `yarn`
 - API/WebSocket: `websocat` or `wscat`
 
-Standalone usage defaults to Mason: language servers are ensured automatically;
-run `:MasonToolsInstall` explicitly for formatters, linters and debug adapters.
-The [Home Manager module](nix/README.md) instead uses Nix-provided tools and does
-not load Mason. Plugins remain managed by ZPack in either mode.
+Standalone usage and the Home Manager wrapper default to Mason. Language servers
+are ensured automatically; run `:MasonToolsInstall` explicitly for formatters,
+linters and debug adapters. Use `:Mason` to inspect and update Mason-managed
+tools. The Home Manager wrapper uses Nix for base utilities and runtime/build
+prerequisites, not editor tools. Plugins remain managed by ZPack in either mode.
+`AZITHRO_TOOL_PROVIDER=nix` remains an optional runtime choice for setups that
+provision editor tools externally; it is not the Home Manager default.
 
 Implementation progress and cutover gates live in [NIX-READINESS.md](NIX-READINESS.md).
 
@@ -111,9 +116,12 @@ Useful TypeScript mappings:
 
 ## LSP
 
-In standalone Mason mode, language servers are installed with
-`mason-lspconfig.nvim`. Nix mode enables the configured servers directly, using
-executables from the Neovim wrapper's PATH.
+Mason is the default in standalone use and under the Home Manager wrapper.
+Language servers are ensured automatically with `mason-lspconfig.nvim`; use
+`:MasonToolsInstall` for the other configured tools and `:Mason` to manage or
+update Mason packages. The optional `AZITHRO_TOOL_PROVIDER=nix` mode is for
+setups that provision all required editor tools externally; it is not backed by
+a Nix LSP/formatter/linter/adapter bundle.
 
 Configured servers include:
 
@@ -131,9 +139,9 @@ Configured servers include:
 - `ts_ls`
 - `yamlls`
 
-In Mason mode, `rust_analyzer` and `ts_ls` are installed but excluded from
-automatic enabling. In Nix mode they are likewise not enabled directly: Rust
-and TypeScript are handled by `rustaceanvim` and `typescript-tools.nvim`.
+`rust_analyzer` and `ts_ls` are installed by Mason but excluded from automatic
+enabling: Rust and TypeScript are handled by `rustaceanvim` and
+`typescript-tools.nvim`.
 
 LSP attach behavior lives in `lua/config/autocmds.lua` and provides buffer-local mappings for hover, rename, code actions, formatting, diagnostics, inlay hints, and document highlights.
 
@@ -299,15 +307,19 @@ This config expects to be used as a Neovim config directory. On first start,
 Plugin repositories and native artifacts need writable user data and Git/network
 access; Nix deploying the config does not preinstall those plugins.
 
-In Mason mode, language servers are ensured automatically; run
-`:MasonToolsInstall` for the other configured tools/adapters. Use `:Mason` to
-inspect them. In Nix mode, install external tools through Home Manager; Mason
-is not loaded and is not part of that workflow.
+Language servers are ensured automatically by Mason; run `:MasonToolsInstall`
+for the other configured tools and adapters. Use `:Mason` to inspect and update
+them. The Home Manager wrapper uses Nix only for base utilities and
+runtime/build prerequisites; editor tools are Mason-managed. Nix-provider mode
+is an optional runtime choice for externally provisioned tools, not the Home
+Manager default. Mason tool installations and updates are mutable Neovim state:
+Nix rollback does not roll them back, and updating them does not require a Home
+Manager rebuild.
 
 The `.envrc` creates a separate `azithro` development config link only when the
-path is absent; it never replaces an existing link/directory. The eventual
-Home Manager wrapper deliberately uses the `nvim` app namespace. See
-[nix/README.md](nix/README.md) for editable/store-backed deployment.
+path is absent; it never replaces an existing link/directory. The Home Manager
+wrapper deliberately uses the `nvim` app namespace. See [nix/README.md](nix/README.md)
+for editable/store-backed deployment.
 
 ## Runtime Settings
 
@@ -316,17 +328,17 @@ these on its Neovim wrapper, not globally in the shell.
 
 | Environment variable | Default / purpose |
 | --- | --- |
-| `AZITHRO_TOOL_PROVIDER` | `mason`; select `nix` for externally provisioned tools |
+| `AZITHRO_TOOL_PROVIDER` | `mason`; optional `nix` for externally provisioned tools |
 | `AZITHRO_PACK_LOCK` | Unset: tracked config lock; override for immutable deployments |
 | `AZITHRO_STITCHR_PATH` | Unset: disabled; local grammar checkout with `grammar.js` |
 | `AZITHRO_EXPERIMENTAL_UI` | `1`; private UI API is guarded, `0` uses native UI |
 | `AZITHRO_PROFILING` | `0`; enable ZPack loader/require profiling with `1` |
 | `AZITHRO_AI_ENABLED` | `0`; opt into the OpenCode-backed `99` plugin with `1` |
 | `AZITHRO_AI_MODEL` | Unset: provider/plugin default; optional explicit model |
-| `AZITHRO_JS_DEBUG_COMMAND` | Nix mode: absolute executable taking a port argument |
-| `AZITHRO_JS_DEBUG_SERVER` | Alternative: absolute JS server script, requiring Node |
-| `AZITHRO_CODELLDB_COMMAND` | Nix mode: absolute adapter path, otherwise `codelldb` on PATH |
-| `AZITHRO_LIBLLDB_PATH` | Optional explicit CodeLLDB shared-library path |
+| `AZITHRO_JS_DEBUG_COMMAND` | Optional explicit JS debug executable; Home Manager unsets it |
+| `AZITHRO_JS_DEBUG_SERVER` | Optional JS server script; Home Manager unsets it |
+| `AZITHRO_CODELLDB_COMMAND` | Optional explicit CodeLLDB adapter; Home Manager unsets it |
+| `AZITHRO_LIBLLDB_PATH` | Optional CodeLLDB shared-library path; Home Manager unsets it |
 
 Boolean settings accept `1`, `0`, `true` or `false`. AI usage requires OpenCode
 and configured provider credentials; scratch requests live in `./.azithro-tmp`
@@ -343,7 +355,9 @@ output, caches and update logs also stay outside the config tree.
 
 **Editable checkout:** run `:ZPack update`, review the lock diff, commit/push it,
 then update the system flake's Azithro input with `nix flake update azithro`.
-Plugin changes take full effect after restarting Neovim.
+Plugin changes take full effect after restarting Neovim. Mason-managed tool
+updates are separate mutable Neovim state: use `:Mason` to manage them; they are
+not rolled back by Nix and do not require a Home Manager rebuild.
 
 **Store-backed config:** Home Manager sets `AZITHRO_PACK_LOCK` to a writable
 state path. Startup validates/seeds it from the bundled lock only when absent;
@@ -374,12 +388,17 @@ against an unrelated writer. Do not run multiple updaters at once.
 
 ## Validation
 
-Run the offline checks with `bash tests/run.sh`. Add `--smoke` for an isolated
+The offline suite passes on unwrapped `v0.13.0-nightly+544d8cd`. Nix formatting
+and parse checks pass, as do read-only `nix/check.nix` immutable/editable
+evaluations for `aarch64-darwin` and `x86_64-linux` using current system-flake
+inputs. No builds or activation were performed. Add `--smoke` for an isolated
 full-plugin install and native Blink Pairs matching check. Tests use disposable
-state, not your live plugin installations; smoke may download plugins/binaries.
-See [tests/README.md](tests/README.md) and [nix/README.md](nix/README.md) for
-scope and Nix evaluation/build commands. The plugin smoke explicitly mocks
-parser installation; real parser/LSP/debugger workflows remain cutover gates.
+state, not your live plugin installations; smoke may download plugins/binaries
+and remains on the explicit externally provisioned `AZITHRO_TOOL_PROVIDER=nix`
+path. It does not validate the Home Manager Mason-default wrapper. See
+[tests/README.md](tests/README.md) and [nix/README.md](nix/README.md) for scope.
+The plugin smoke explicitly mocks parser installation; real Mason
+LSP/debugger workflows remain pending.
 
 ## Notes
 

@@ -106,7 +106,7 @@ let
     assert hasSequence immutableArgs [
       "--set"
       "AZITHRO_TOOL_PROVIDER"
-      "nix"
+      "mason"
     ];
     assert hasSequence immutableArgs [
       "--set"
@@ -127,11 +127,85 @@ let
       "--unset"
       "AZITHRO_STITCHR_PATH"
     ];
-    assert hasSequence immutableArgs [
-      "--set"
-      "AZITHRO_CODELLDB_COMMAND"
-      tools.codeLLDBAdapter
-    ];
+    assert builtins.all
+      (
+        args:
+        hasSequence args [
+          "--set"
+          "AZITHRO_TOOL_PROVIDER"
+          "mason"
+        ]
+        &&
+          builtins.all
+            (
+              name:
+              hasSequence args [
+                "--unset"
+                name
+              ]
+            )
+            [
+              "AZITHRO_JS_DEBUG_COMMAND"
+              "AZITHRO_JS_DEBUG_SERVER"
+              "AZITHRO_CODELLDB_COMMAND"
+              "AZITHRO_LIBLLDB_PATH"
+            ]
+      )
+      [
+        immutableArgs
+        editableArgs
+      ];
+    # Both deployment modes supply prerequisites, never competing tool versions.
+    assert immutable.config.programs.neovim.extraPackages == tools.packages;
+    assert editable.config.programs.neovim.extraPackages == tools.packages;
+    assert builtins.all (package: builtins.elem package tools.packages) (
+      with pkgs;
+      [
+        curl
+        fd
+        git
+        lazygit
+        ripgrep
+        unzip
+        nodejs
+        python3
+        go
+        rustup
+        tree-sitter
+        gnumake
+        pkg-config
+        stdenv.cc
+      ]
+    );
+    assert builtins.all (package: !(builtins.elem package tools.packages)) (
+      with pkgs;
+      [
+        bash-language-server
+        gopls
+        graphql-language-service-cli
+        lua-language-server
+        marksman
+        rust-analyzer
+        taplo
+        typescript-language-server
+        vscode-langservers-extracted
+        yaml-language-server
+        eslint
+        gofumpt
+        gotools
+        hadolint
+        markdownlint-cli2
+        prettier
+        prettierd
+        shellcheck
+        shfmt
+        stylua
+        typescript
+        delve
+        vscode-js-debug
+        vscode-extensions.vadimcn.vscode-lldb
+      ]
+    );
     assert hasSequence immutableArgs [
       "--set"
       "AZITHRO_PACK_LOCK"

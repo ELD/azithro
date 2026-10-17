@@ -25,13 +25,34 @@ assert_warning() {
     || fail "expected untouched-path warning for $path"
 }
 
+# direnv provides PATH_add; use a disposable executable instead of inspecting
+# the host's Nix profile in these portable, offline tests.
+PATH_add() { export PATH="$1:$PATH"; }
+mkdir -p "$temp/bin"
+printf '#!/usr/bin/env bash\nprintf "unwrapped-fixture\\n"\n' > "$temp/bin/nvim"
+chmod +x "$temp/bin/nvim"
+export AZITHRO_DEV_NVIM="$temp/bin/nvim"
+
 # XDG_CONFIG_HOME is honored and its missing parent hierarchy is created.
 (
   export HOME="$temp/home"
   export XDG_CONFIG_HOME="$temp/custom/deep/config"
   cd "$checkout"
+  export AZITHRO_TOOL_PROVIDER=nix
+  export AZITHRO_PACK_LOCK=/tmp/hm-lock
+  export AZITHRO_JS_DEBUG_COMMAND=/tmp/hm-js-debug
+  export AZITHRO_JS_DEBUG_SERVER=/tmp/hm-js-server
+  export AZITHRO_CODELLDB_COMMAND=/tmp/hm-codelldb
+  export AZITHRO_LIBLLDB_PATH=/tmp/hm-liblldb
   source "$repo/.envrc" 2>"$temp/create.stderr"
   [[ $NVIM_APPNAME == azithro ]] || fail "NVIM_APPNAME was not set"
+  [[ $AZITHRO_TOOL_PROVIDER == mason ]] || fail "development must use Mason"
+  [[ $(nvim) == unwrapped-fixture ]] || fail "development executable not on PATH"
+  for name in AZITHRO_PACK_LOCK AZITHRO_JS_DEBUG_COMMAND AZITHRO_JS_DEBUG_SERVER AZITHRO_CODELLDB_COMMAND AZITHRO_LIBLLDB_PATH; do
+    if printenv "$name" >/dev/null; then
+      fail "$name leaked into development environment"
+    fi
+  done
   [[ -d "$XDG_CONFIG_HOME" ]] || fail "XDG config parent hierarchy was not created"
   assert_link "$XDG_CONFIG_HOME/azithro" "$expected_checkout"
   [[ ! -s "$temp/create.stderr" ]] || fail "new config link unexpectedly emitted a warning"
@@ -97,6 +118,16 @@ assert_warning() {
   [[ $(readlink "$XDG_CONFIG_HOME/azithro") == "$temp/missing-target" ]] \
     || fail "dangling symlink target changed"
   assert_warning "$temp/dangling.stderr" "$XDG_CONFIG_HOME/azithro"
+)
+
+# Missing overrides must fail rather than silently falling back to HM's wrapper.
+(
+  export AZITHRO_DEV_NVIM="$temp/missing-nvim"
+  if source "$repo/.envrc" 2>"$temp/missing.stderr"; then
+    fail "missing executable was accepted"
+  fi
+  grep -F 'set AZITHRO_DEV_NVIM' "$temp/missing.stderr" >/dev/null \
+    || fail "missing executable did not explain the override"
 )
 
 printf 'tests/envrc.sh: all tests passed\n'

@@ -8,7 +8,7 @@ if [[ ${1:-} != "" && ${1:-} != "--smoke" ]] || [[ $# -gt 1 ]]; then
   exit 2
 fi
 
-for test in syntax runtime pack debug native markview pack-integration; do
+for test in syntax runtime highlighting pack debug native markview pack-integration; do
   "$nvim" -n -i NONE --headless -u NONE -l "tests/$test.lua"
 done
 bash tests/envrc.sh

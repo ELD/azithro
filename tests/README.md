@@ -3,7 +3,9 @@
 Run the offline suite from the repository root with `bash tests/run.sh`; add
 `--smoke` for full-plugin/native validation. `NVIM` selects the suite runner;
 `NVIM_TEST` optionally selects a different binary for the full-plugin child.
-Both must provide Neovim 0.13+ and `packlockfile` support.
+Both must provide Neovim 0.13+ and `packlockfile` support. Use the unwrapped
+executable (or the development `.envrc`) so the Home Manager wrapper does not
+inject its own initialization.
 
 ## Full-plugin smoke test
 
@@ -35,7 +37,13 @@ experimental UI for headless mode, fires `UIEnter` and `VeryLazy` manually,
 requires Neotest before DAP, checks the configured adapters, TypeScript
 preferences, Conform, Markview extras/Blink registration/buffer-local mappings,
 and verifies every bundled lock revision in the fresh
-native installation. Mason modules must remain unloaded. Both `vim.notify`
+native installation. This deliberately exercises the optional externally
+provisioned Nix provider, not Home Manager's Mason default, and avoids automatic
+LSP/tool downloads. Mason modules must remain unloaded in this smoke. The offline
+runtime/debug tests cover Mason specs and adapter setup; `nix/check.nix` verifies
+both Home Manager deployment modes select Mason, clear external adapter overrides,
+and provide prerequisites without competing tool packages. Neither test proves
+real Mason tool installation or debugger launches on a target host. Both `vim.notify`
 ERRORs and `nvim_echo` calls with `err=true` are captured and fail the test.
 Blink Pairs must report `library_available() == true`; the smoke then runs its
 real Rust parser on a delimiter fixture and asserts the native matching-pair

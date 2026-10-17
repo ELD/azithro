@@ -205,7 +205,7 @@ in
         "nvim"
         "--set"
         "AZITHRO_TOOL_PROVIDER"
-        "nix"
+        "mason"
         "--set"
         "AZITHRO_EXPERIMENTAL_UI"
         (boolValue cfg.experimentalUI)
@@ -218,12 +218,15 @@ in
         "--set"
         "AZITHRO_AI_MODEL"
         cfg.ai.model
-        "--set"
+        # Mason owns adapters too; do not inherit external-provider overrides.
+        "--unset"
         "AZITHRO_JS_DEBUG_COMMAND"
-        tools.jsDebugCommand
-        "--set"
+        "--unset"
+        "AZITHRO_JS_DEBUG_SERVER"
+        "--unset"
         "AZITHRO_CODELLDB_COMMAND"
-        tools.codeLLDBAdapter
+        "--unset"
+        "AZITHRO_LIBLLDB_PATH"
       ]
       ++ lockArgs
       ++ optionalStitchrArgs;
